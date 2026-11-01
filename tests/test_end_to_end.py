@@ -379,3 +379,41 @@ def test_output_nodata_metadata_preserves_masked_statistics(completed_run):
         assert masked.count() > 0
         assert np.isfinite(masked.compressed()).all()
         assert np.isfinite(masked.mean())
+
+
+def test_advective_public_path_exports_complete_georeferenced_diagnostics(tmp_path):
+    """Exercise wind, transported air, roof/canopy fluxes, and all legacy exports."""
+    _build_scene(str(tmp_path))
+    _write_peak_met(str(tmp_path / "met.txt"))
+    thermal_comfort(
+        base_path=tmp_path, selected_date_str=DATE,
+        own_met_file=str(tmp_path / "met.txt"), trees_filename="CDSM.tif",
+        landcover_filename="landcover.tif", tile_size=256, overlap=20,
+        use_energy_balance=True, use_roof_eb=True, use_canopy_eb=True,
+        use_canyon_air_temp=True, use_wind_field=True, tair_method="advdiff",
+        save_tmrt=True, save_svf=True, save_kup=True, save_kdown=True,
+        save_lup=True, save_ldown=True, save_shadow=True, save_qh=True, save_qe=True,
+        save_tsfc=True, save_tsfc_roof=True, save_t_leaf=True,
+        save_canopy_qh=True, save_canopy_qe=True, save_tair=True, save_tair_canyon=True,
+        save_wind_speed=True, save_wind_direction=True,
+    )
+    output = tmp_path / "output_folder" / "0_0"
+    variables = (
+        "UTCI", "TMRT", "SVF", "Kup", "Kdown", "Lup", "Ldown", "Shadow",
+        "QH", "QE", "Tsfc", "TsfcRoof", "TLeaf", "CanopyQH", "CanopyQE",
+        "Tair", "TairCanyon", "WindSpeed", "WindDir",
+    )
+    for variable in variables:
+        with rasterio.open(output / f"{variable}_0_0.tif") as source:
+            values = source.read(masked=True)
+            assert source.crs.to_epsg() == EPSG
+            assert source.count == 1
+            assert np.isnan(source.nodata)
+            assert values.count() > 0, variable
+            assert np.isfinite(values.compressed()).all(), variable
+            if variable != "SVF":
+                assert source.tags(1)["Time"] == "2023-07-06T13:00:00"
+    with rasterio.open(output / "Tair_0_0.tif") as source:
+        air = source.read(masked=True)
+        assert air.min() >= 22
+        assert air.max() <= 52

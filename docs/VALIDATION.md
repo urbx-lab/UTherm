@@ -1,25 +1,28 @@
-# Release validation
+# Validation evidence
 
 Validated on 2026-11-01 using Python 3.11 on macOS arm64, CPU execution.
 
-- Full regression suite: **271 passed** (37 upstream dependency deprecation warnings).
-- Ruff undefined-name checks and Python compilation: passed.
-- Wheel and source archive build: passed; `twine check` passed for both.
-- Package dependency consistency (`pip check`): passed.
-- Wheel includes the land-cover lookup table, module CLI, and geometry command.
-- Installed wheel imported from site-packages outside the source checkout.
-- Public synthetic example completed from that wheel; UTCI and TMRT each
-  contained 24 georeferenced bands with finite valid cells. UTCI building cells
-  were correctly masked through the GeoTIFF NaN nodata declaration.
-- Source scan found no credentials or author-specific absolute runtime paths.
-- Numerical Python syntax matches the source snapshot outside the documented
-  CLI and output-metadata edits (ignoring docstrings and whitespace).
+- Full regression suite: **302 passed**.
+- Scientific-engine line coverage: **81.72%**, above the 80% gate. Only the
+  optional interactive GUI is excluded; legacy scientific modules stay in scope.
+- Syntax, Pyflakes, Bugbear, maintained-file formatting, and generated API checks passed.
+- Wheel and source archive builds passed; `twine check` passed for both.
+- Dependency consistency (`pip check`) and full binary-import diagnostics passed.
+- Installed-wheel checks run outside the checkout, including the synthetic scene.
+- Public-path tests cover radiation, modular and coupled energy balance, advective
+  air temperature, wind, roof/canopy fluxes, and georeferenced diagnostic exports.
+- Export tests verify grid, nodata, compression, timestamps, and rejection of
+  invalid arrays before an existing output can be overwritten.
+- Regression checks cover spatial wind-speed preservation with scalar direction,
+  missing wind observations, directional transport, diffusion, and bounded relaxation.
+- Missing-CUDA checks correctly fail in both doctor and the GPU-required test route.
 
 See `PROVENANCE.md` and `SOURCE_PROVENANCE.json` for source identity and changes.
-Local CUDA execution and other Python/platform combinations were not tested.
-GitHub Actions is configured for Python 3.10, 3.11, and 3.12 on Linux CPU; its
-status is available in the repository's Actions tab. Passing these checks does
-not replace observational validation of a real-world simulation.
+Local CUDA execution was not performed. CI runs Linux Python 3.10–3.12 and
+macOS Python 3.11 on CPU; each job uploads coverage, test reports, and packages.
+Use the [Actions page](https://github.com/urbx-lab/UTherm/actions/workflows/ci.yml)
+for results tied to an exact commit. Numerical tests do not replace observational
+validation of a real-world simulation.
 
 ## Local dependency versions
 

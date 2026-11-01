@@ -18,3 +18,6 @@ output_folder/
 *.tiff
 *.nc
 *.npz
+coverage.xml
+coverage.json
+artifacts/

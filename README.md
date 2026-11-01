@@ -22,7 +22,7 @@ against observations for a new site. See [model assumptions](docs/MODEL.md).
 - Optional ground, roof, and canopy energy balances with material presets.
 - Diagnostic urban wind and canyon air temperature, including advection–diffusion.
 - Optional coupled facet energy balance and ray-traced geometry.
-- Python API, command-line interface, and synthetic examples requiring no downloads.
+- Python API and command-line interface for scripted workflows.
 
 ## Installation
 
@@ -37,6 +37,7 @@ conda env create -f environment.yml
 conda activate utherm
 python -m pip install -e .
 utherm --version
+utherm doctor
 ```
 
 Micromamba users can run `micromamba create -f environment.yml` instead of
@@ -49,23 +50,14 @@ then check `python -c "import torch; print(torch.cuda.is_available())"`.
 Apple Metal/MPS is not selected by the model. Set `CUDA_VISIBLE_DEVICES=""`
 before starting Python to force CPU execution on a CUDA host.
 
+See [installation and troubleshooting](docs/INSTALLATION.md) for existing
+environments, reproducible snapshots, and GPU validation.
+
 The distribution name is `urbx-utherm`; the import name is `utherm`. Installation
 from this repository is the supported route; this README does not assume a PyPI
 release. The optional desktop GUI requires `python -m pip install '.[gui]'`.
 
 ## Quick start
-
-Run a complete simulation on a generated neighborhood and weather series:
-
-```bash
-python examples/synthetic_scene.py --output /tmp/utherm-example
-```
-
-This creates a small scene with buildings and trees, runs a synthetic summer
-day, and writes `UTCI_0_0.tif` and `TMRT_0_0.tif` under
-`/tmp/utherm-example/output_folder/0_0/`. The forcing is illustrative and must
-not be interpreted as an observed weather record. CPU execution may take several
-minutes. The command refuses an existing output directory to avoid mixing runs.
 
 ### Python API
 
@@ -130,6 +122,9 @@ runs are not a provenance-managed experiment archive.
 
 ## Documentation
 
+- [Installation and troubleshooting](docs/INSTALLATION.md)
+- [Python API reference](docs/API.md)
+- [Development and releases](docs/DEVELOPMENT.md)
 - [Input, weather, and output reference](docs/INPUTS.md)
 - [Model assumptions and scientific limits](docs/MODEL.md)
 - [Experimental coupled energy balance](docs/COUPLED_ENERGY_BALANCE.md)
@@ -142,16 +137,20 @@ runs are not a provenance-managed experiment archive.
 
 ```bash
 python -m pip install -e '.[dev]'
-pytest -q
-ruff check utherm tests examples
+pytest -q --cov
+ruff check utherm tests examples tools
+python tools/build_api_reference.py --check
 python -m build
 python -m twine check dist/*
 ```
 
 The suite includes physical-invariant, raster-validation, and end-to-end
 regression tests. It generates its own scenes and requires no city archive or
-API keys. CPU tests are the default; `pytest --device=cuda` exercises tensor
-fixtures on a CUDA host. CI also tests the wheel from outside the source tree.
+API keys. CI tests Linux on Python 3.10–3.12 and macOS on Python 3.11, enforces an 80%
+line-coverage floor, and runs the installed wheel outside the source tree.
+The optional GUI is excluded from coverage. For a CUDA validation run, use
+`pytest --device=cuda --require-cuda`; missing hardware fails explicitly.
+See the [development guide](docs/DEVELOPMENT.md) for checks and release steps.
 
 ## Citation
 

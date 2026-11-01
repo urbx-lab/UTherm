@@ -246,7 +246,7 @@ def process_file_parallel(args):
         out_paths = [os.path.join(wall_output_path, out_names[0]),
                      os.path.join(aspect_output_path, out_names[1])]
 
-        for out_path, data in zip(out_paths, [walls, aspects]):
+        for out_path, data in zip(out_paths, [walls, aspects], strict=True):
             max_retries = 3
             retry_delay = 0.1
             success = False

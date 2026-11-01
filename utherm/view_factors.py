@@ -254,7 +254,7 @@ def _body_direction_sets(count: int) -> tuple[tuple[np.ndarray, float], ...]:
         extra[index] += 1
     return tuple(
         (_cosine_directions(normal, 2 * int(ray_pairs)), weight)
-        for (normal, weight), ray_pairs in zip(normals_and_weights, extra + 1)
+        for (normal, weight), ray_pairs in zip(normals_and_weights, extra + 1, strict=True)
     )
 
 
@@ -432,8 +432,6 @@ def _trace_direction(
         rr = sample_row.flat[flat]
         cc = sample_col.flat[flat]
         ray_z = z.flat[flat]
-        weight = remaining.flat[flat]
-        local_dem = dem[rr, cc]
         local_top = building_dsm[rr, cc]
         local_building = building_height[rr, cc] >= config.building_threshold_m
         solid = local_building & (ray_z <= local_top)
@@ -562,9 +560,10 @@ def trace_geometry(
     canopy_height: np.ndarray,
     *,
     window: Sequence[int] | None = None,
-    config: ViewFactorConfig = ViewFactorConfig(),
+    config: ViewFactorConfig | None = None,
 ) -> TracedGeometry:
     """Trace a real height-field scene into local reciprocal facet enclosures."""
+    config = config if config is not None else ViewFactorConfig()
     config.validate()
     (
         dem_array,

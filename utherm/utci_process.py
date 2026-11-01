@@ -26,6 +26,7 @@ from timezonefinder import TimezoneFinder
 import pytz
 import datetime
 from .Tgmaps_v1 import Tgmaps_v1
+from ._outputs import write_geotiff
 from .sun_position import Solweig_2015a_metdata_noload
 from .shadow import svf_calculator, create_patches
 from .radiation import Solweig_2022a_calc, clearnessindex_2013b
@@ -646,7 +647,6 @@ def compute_utci(building_dsm_path, tree_path, dem_path, walls_path, aspect_path
         from .energy_balance.coupled import (
             CANOPY,
             GROUND,
-            N_FACETS,
             ROOF,
             WALL_EAST,
             WALL_NORTH,
@@ -1046,7 +1046,7 @@ def compute_utci(building_dsm_path, tree_path, dem_path, walls_path, aspect_path
             )
 
         for index, (result, radiation_result) in enumerate(
-            zip(coupled_results, coupled_radiation)
+            zip(coupled_results, coupled_radiation, strict=True)
         ):
             canyon_air_c = result.state.canyon_air_temperature - 273.15
             rh_canyon = radiation_result.relative_humidity_percent
@@ -1114,182 +1114,36 @@ def compute_utci(building_dsm_path, tree_path, dem_path, walls_path, aspect_path
         dt = datetime.datetime(y, 1, 1) + datetime.timedelta(days=d - 1)
         return dt.replace(hour=h, minute=m).isoformat()
 
-    if QH_all:
-        QH_all = np.array(QH_all)
-        QE_all = np.array(QE_all)
-    # Write a multi-band GeoTIFF for UTCI (each band corresponds to one time step)
-    driver = gdal.GetDriverByName('GTiff')
-    out_file_path = os.path.join(output_path, f'UTCI_{number}.tif')
-    num_bands = UTCI_all.shape[0]
-    out_dataset = driver.Create(out_file_path, cols, rows, num_bands, gdal.GDT_Float32)
-    out_dataset.SetGeoTransform(dataset.GetGeoTransform())
-    out_dataset.SetProjection(dataset.GetProjection())
-    for band in range(num_bands):
-        out_band = out_dataset.GetRasterBand(band + 1)
-        out_band.SetNoDataValue(float("nan"))
-        out_band.WriteArray(UTCI_all[band])
-        out_band.FlushCache()
-        timestamp = _make_timestamp(band)
-        out_band.SetMetadata({'Time': timestamp})
-    out_dataset = None
-    # Optionally, you can similarly write TMRT to a single multi-band file:
-    if save_tmrt:
-        out_file_path_op = os.path.join(output_path, f'TMRT_{number}.tif')
-        num_bands_op = TMRT_all.shape[0]
-        out_dataset_op = driver.Create(out_file_path_op, cols, rows, num_bands_op, gdal.GDT_Float32)
-        out_dataset_op.SetGeoTransform(dataset.GetGeoTransform())
-        out_dataset_op.SetProjection(dataset.GetProjection())
-        for band in range(num_bands_op):
-            out_band = out_dataset_op.GetRasterBand(band + 1)
-            out_band.SetNoDataValue(float("nan"))
-            out_band.WriteArray(TMRT_all[band])
-            out_band.FlushCache()
-            timestamp = _make_timestamp(band)
-            out_band.SetMetadata({'Time': timestamp})
-        out_dataset_op = None
+    timestamps = [_make_timestamp(band) for band in range(UTCI_all.shape[0])]
+    fields = [
+        ("UTCI", UTCI_all, True),
+        ("TMRT", TMRT_all, save_tmrt),
+        ("Kup", Kup_all, save_kup),
+        ("Kdown", Kdown_all, save_kdown),
+        ("Lup", Lup_all, save_lup),
+        ("Ldown", Ldown_all, save_ldown),
+        ("Shadow", Shadow_all, save_shadow),
+        ("QH", QH_all, save_qh),
+        ("QE", QE_all, save_qe),
+        ("Tsfc", Tsfc_all, save_tsfc),
+        ("TsfcRoof", TsfcRoof_all, save_tsfc_roof),
+        ("TLeaf", TLeaf_all, save_t_leaf),
+        ("CanopyQH", CanopyQH_all, save_canopy_qh),
+        ("CanopyQE", CanopyQE_all, save_canopy_qe),
+        ("Tair", Tair_all, save_tair),
+        ("TairCanyon", TairCanyon_all, save_tair_canyon),
+        ("TsfcWallNorth", WallNorth_all, save_wall_temperature),
+        ("TsfcWallEast", WallEast_all, save_wall_temperature),
+        ("TsfcWallSouth", WallSouth_all, save_wall_temperature),
+        ("TsfcWallWest", WallWest_all, save_wall_temperature),
+        ("WindSpeed", WindSpeed_all, save_wind_speed),
+        ("WindDir", WindDir_all, save_wind_direction),
+    ]
+    for name, values, enabled in fields:
+        if enabled and len(values):
+            write_geotiff(os.path.join(output_path, f"{name}_{number}.tif"), values, dataset, timestamps)
     if save_svf:
-        out_file_path_op = os.path.join(output_path, f'SVF_{number}.tif')
-        SVF = svftotal.cpu().numpy()
-        SVF = np.array(SVF)
-        out_dataset_op = driver.Create(out_file_path_op, cols, rows, 1, gdal.GDT_Float32)
-        out_dataset_op.SetGeoTransform(dataset.GetGeoTransform())
-        out_dataset_op.SetProjection(dataset.GetProjection())
-        out_band = out_dataset_op.GetRasterBand(1)
-        out_band.SetNoDataValue(float("nan"))
-        out_band.WriteArray(SVF)
-        out_band.FlushCache()
-        out_dataset_op = None
-    if save_kup:
-        out_file_path_op = os.path.join(output_path, f'Kup_{number}.tif')
-        num_bands_op = Kup_all.shape[0]
-        out_dataset_op = driver.Create(out_file_path_op, cols, rows, num_bands_op, gdal.GDT_Float32)
-        out_dataset_op.SetGeoTransform(dataset.GetGeoTransform())
-        out_dataset_op.SetProjection(dataset.GetProjection())
-        for band in range(num_bands_op):
-            out_band = out_dataset_op.GetRasterBand(band + 1)
-            out_band.SetNoDataValue(float("nan"))
-            out_band.WriteArray(Kup_all[band])
-            out_band.FlushCache()
-            timestamp = _make_timestamp(band)
-            out_band.SetMetadata({'Time': timestamp})
-        out_dataset_op = None
-    if save_kdown:
-        out_file_path_op = os.path.join(output_path, f'Kdown_{number}.tif')
-        num_bands_op = Kdown_all.shape[0]
-        out_dataset_op = driver.Create(out_file_path_op, cols, rows, num_bands_op, gdal.GDT_Float32)
-        out_dataset_op.SetGeoTransform(dataset.GetGeoTransform())
-        out_dataset_op.SetProjection(dataset.GetProjection())
-        for band in range(num_bands_op):
-            out_band = out_dataset_op.GetRasterBand(band + 1)
-            out_band.SetNoDataValue(float("nan"))
-            out_band.WriteArray(Kdown_all[band])
-            out_band.FlushCache()
-            timestamp = _make_timestamp(band)
-            out_band.SetMetadata({'Time': timestamp})
-        out_dataset_op = None
-    if save_lup:
-        out_file_path_op = os.path.join(output_path, f'Lup_{number}.tif')
-        num_bands_op = Lup_all.shape[0]
-        out_dataset_op = driver.Create(out_file_path_op, cols, rows, num_bands_op, gdal.GDT_Float32)
-        out_dataset_op.SetGeoTransform(dataset.GetGeoTransform())
-        out_dataset_op.SetProjection(dataset.GetProjection())
-        for band in range(num_bands_op):
-            out_band = out_dataset_op.GetRasterBand(band + 1)
-            out_band.SetNoDataValue(float("nan"))
-            out_band.WriteArray(Lup_all[band])
-            out_band.FlushCache()
-            timestamp = _make_timestamp(band)
-            out_band.SetMetadata({'Time': timestamp})
-        out_dataset_op = None
-    if save_ldown:
-        out_file_path_op = os.path.join(output_path, f'Ldown_{number}.tif')
-        num_bands_op = Ldown_all.shape[0]
-        out_dataset_op = driver.Create(out_file_path_op, cols, rows, num_bands_op, gdal.GDT_Float32)
-        out_dataset_op.SetGeoTransform(dataset.GetGeoTransform())
-        out_dataset_op.SetProjection(dataset.GetProjection())
-        for band in range(num_bands_op):
-            out_band = out_dataset_op.GetRasterBand(band + 1)
-            out_band.SetNoDataValue(float("nan"))
-            out_band.WriteArray(Ldown_all[band])
-            out_band.FlushCache()
-            timestamp = _make_timestamp(band)
-            out_band.SetMetadata({'Time': timestamp})
-        out_dataset_op = None
-    if save_shadow:
-        out_file_path_op = os.path.join(output_path, f'Shadow_{number}.tif')
-        num_bands_op = Shadow_all.shape[0]
-        out_dataset_op = driver.Create(out_file_path_op, cols, rows, num_bands_op, gdal.GDT_Float32)
-        out_dataset_op.SetGeoTransform(dataset.GetGeoTransform())
-        out_dataset_op.SetProjection(dataset.GetProjection())
-        for band in range(num_bands_op):
-            out_band = out_dataset_op.GetRasterBand(band + 1)
-            out_band.SetNoDataValue(float("nan"))
-            out_band.WriteArray(Shadow_all[band])
-            out_band.FlushCache()
-            timestamp = _make_timestamp(band)
-            out_band.SetMetadata({'Time': timestamp})
-        out_dataset_op = None
-
-    if save_qh and isinstance(QH_all, np.ndarray) and QH_all.size > 0:
-        out_file_path_op = os.path.join(output_path, f'QH_{number}.tif')
-        num_bands_op = QH_all.shape[0]
-        out_dataset_op = driver.Create(out_file_path_op, cols, rows, num_bands_op, gdal.GDT_Float32)
-        out_dataset_op.SetGeoTransform(dataset.GetGeoTransform())
-        out_dataset_op.SetProjection(dataset.GetProjection())
-        for band in range(num_bands_op):
-            out_band = out_dataset_op.GetRasterBand(band + 1)
-            out_band.SetNoDataValue(float("nan"))
-            out_band.WriteArray(QH_all[band])
-            out_band.FlushCache()
-            timestamp = _make_timestamp(band)
-            out_band.SetMetadata({'Time': timestamp})
-        out_dataset_op = None
-    if save_qe and isinstance(QE_all, np.ndarray) and QE_all.size > 0:
-        out_file_path_op = os.path.join(output_path, f'QE_{number}.tif')
-        num_bands_op = QE_all.shape[0]
-        out_dataset_op = driver.Create(out_file_path_op, cols, rows, num_bands_op, gdal.GDT_Float32)
-        out_dataset_op.SetGeoTransform(dataset.GetGeoTransform())
-        out_dataset_op.SetProjection(dataset.GetProjection())
-        for band in range(num_bands_op):
-            out_band = out_dataset_op.GetRasterBand(band + 1)
-            out_band.SetNoDataValue(float("nan"))
-            out_band.WriteArray(QE_all[band])
-            out_band.FlushCache()
-            timestamp = _make_timestamp(band)
-            out_band.SetMetadata({'Time': timestamp})
-        out_dataset_op = None
-
-    # Write roof/canopy diagnostic TIFs
-    for var_name, var_list, save_flag in [
-        ('Tsfc', Tsfc_all, save_tsfc),
-        ('TsfcRoof', TsfcRoof_all, save_tsfc_roof),
-        ('TLeaf', TLeaf_all, save_t_leaf),
-        ('CanopyQH', CanopyQH_all, save_canopy_qh),
-        ('CanopyQE', CanopyQE_all, save_canopy_qe),
-        ('Tair', Tair_all, save_tair),
-        ('TairCanyon', TairCanyon_all, save_tair_canyon),
-        ('TsfcWallNorth', WallNorth_all, save_wall_temperature),
-        ('TsfcWallEast', WallEast_all, save_wall_temperature),
-        ('TsfcWallSouth', WallSouth_all, save_wall_temperature),
-        ('TsfcWallWest', WallWest_all, save_wall_temperature),
-        ('WindSpeed', WindSpeed_all, save_wind_speed),
-        ('WindDir', WindDir_all, save_wind_direction),
-    ]:
-        if save_flag and len(var_list) > 0:
-            var_arr = np.array(var_list)
-            out_file_path_op = os.path.join(output_path, f'{var_name}_{number}.tif')
-            num_bands_op = var_arr.shape[0]
-            out_dataset_op = driver.Create(out_file_path_op, cols, rows, num_bands_op, gdal.GDT_Float32)
-            out_dataset_op.SetGeoTransform(dataset.GetGeoTransform())
-            out_dataset_op.SetProjection(dataset.GetProjection())
-            for band in range(num_bands_op):
-                out_band = out_dataset_op.GetRasterBand(band + 1)
-                out_band.SetNoDataValue(float("nan"))
-                out_band.WriteArray(var_arr[band])
-                out_band.FlushCache()
-                timestamp = _make_timestamp(band)
-                out_band.SetMetadata({'Time': timestamp})
-            out_dataset_op = None
+        write_geotiff(os.path.join(output_path, f"SVF_{number}.tif"), svftotal.cpu().numpy(), dataset)
 
     dataset = None
     end_time = time.time()

@@ -59,18 +59,12 @@ def wind_to_raster_velocity(speed, direction, device, rows, cols):
     Accepts tensor fields (per-pixel URock wind) or Python scalars (uniform met wind);
     scalars are broadcast to a full ``(rows, cols)`` field. NaNs (building pixels) → 0.
     """
-    if isinstance(direction, torch.Tensor):
-        dir_rad = torch.deg2rad(torch.nan_to_num(direction, nan=0.0))
-        sp = speed if isinstance(speed, torch.Tensor) else torch.full((rows, cols), float(speed), device=device)
-        sp = torch.nan_to_num(sp, nan=0.0)
-        vel_row = sp * torch.cos(dir_rad)
-        vel_col = -sp * torch.sin(dir_rad)
-    else:
-        dir_rad = math.radians(float(direction))
-        sp = float(speed) if not isinstance(speed, torch.Tensor) else float(speed.mean().item())
-        vel_row = torch.full((rows, cols), sp * math.cos(dir_rad), device=device)
-        vel_col = torch.full((rows, cols), -sp * math.sin(dir_rad), device=device)
-    return vel_row, vel_col
+    sp = torch.broadcast_to(torch.as_tensor(speed, dtype=torch.float32, device=device), (rows, cols))
+    bearing = torch.broadcast_to(torch.as_tensor(direction, dtype=torch.float32, device=device), (rows, cols))
+    valid = torch.isfinite(sp) & torch.isfinite(bearing)
+    sp = torch.where(valid, sp, torch.zeros_like(sp))
+    dir_rad = torch.deg2rad(torch.where(valid, bearing, torch.zeros_like(bearing)))
+    return sp * torch.cos(dir_rad), -sp * torch.sin(dir_rad)
 
 
 class AdvectionDiffusionAirTemp:
@@ -93,6 +87,17 @@ class AdvectionDiffusionAirTemp:
         max_substeps: int = 2000,        # accuracy cap: back-trace jump ≈ dt_sub·|u|/dx cells
         clamp_delta: float = 15.0,       # hard bound |T − Ta| (K) — physical safety net
     ):
+        for name, value in (("rows", rows), ("cols", cols), ("max_substeps", max_substeps)):
+            if isinstance(value, bool) or not isinstance(value, int) or value <= 0:
+                raise ValueError(f"{name} must be a positive integer")
+        for name, value in (
+            ("dx", dx), ("mixing_depth", mixing_depth), ("dt", dt),
+            ("courant", courant), ("diff_courant", diff_courant), ("clamp_delta", clamp_delta),
+        ):
+            if not math.isfinite(value) or value <= 0:
+                raise ValueError(f"{name} must be finite and positive")
+        if not math.isfinite(eddy_diffusivity) or eddy_diffusivity < 0:
+            raise ValueError("eddy_diffusivity must be finite and nonnegative")
         self.rows = rows
         self.cols = cols
         self.dx = max(float(dx), 1e-6)
@@ -133,7 +138,7 @@ class AdvectionDiffusionAirTemp:
         n = int(math.ceil(self.dt / max(dt_sub, 1e-6)))
         return max(1, min(n, self.max_substeps))
 
-    def _gaussian_kernel(self, sigma_cells: float) -> torch.Tensor:
+    def _gaussian_kernel(self, sigma_cells: float) -> tuple[torch.Tensor, int]:
         """1-D separable Gaussian kernel for a diffusion length of `sigma_cells` pixels."""
         radius = int(min(math.ceil(3.0 * sigma_cells), 40))
         x = torch.arange(-radius, radius + 1, device=self.device, dtype=torch.float32)

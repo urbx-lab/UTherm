@@ -285,11 +285,12 @@ class CoupledUrbanEnergyBalance:
         solid_materials: Sequence[MaterialProperties],
         canopy_properties: CanopyProperties,
         water_capacity: torch.Tensor,
-        config: CoupledUrbanEBConfig = CoupledUrbanEBConfig(),
+        config: Optional[CoupledUrbanEBConfig] = None,
         *,
         material_ids: Optional[torch.Tensor] = None,
         material_table: Optional[Sequence[MaterialProperties]] = None,
     ):
+        config = config if config is not None else CoupledUrbanEBConfig()
         self.rows, self.cols = geometry.validate()
         if len(solid_materials) != N_SOLID_FACETS:
             raise ValueError("solid_materials must contain ground, roof and four wall materials")
@@ -813,7 +814,7 @@ class CoupledUrbanEnergyBalance:
         max_humidity_change = float("inf")
         iterations = 0
 
-        for iterations in range(1, self.config.max_coupling_iterations + 1):
+        for _iterations in range(1, self.config.max_coupling_iterations + 1):
             previous_temperature = temperature.clone()
             previous_canyon = canyon_air.clone()
             previous_humidity = canyon_humidity.clone()

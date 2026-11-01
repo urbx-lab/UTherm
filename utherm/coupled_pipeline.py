@@ -188,7 +188,7 @@ def load_geometry_bundle(
         )
         trace_presence = [name in archive for name in trace_names]
         if any(trace_presence) and not all(trace_presence):
-            missing = [name for name, present in zip(trace_names, trace_presence) if not present]
+            missing = [name for name, present in zip(trace_names, trace_presence, strict=True) if not present]
             raise ValueError(
                 "coupled geometry bundle has an incomplete solar-trace payload; "
                 f"missing {missing}"
@@ -562,7 +562,7 @@ class CoupledRadiationBridge:
         radiation = [
             self.radiation_result(result, forcing, body_shortwave)
             for result, forcing, body_shortwave in zip(
-                results, forcings, absorbed_shortwave_by_body
+                results, forcings, absorbed_shortwave_by_body, strict=True
             )
         ]
         return results, radiation

@@ -4,6 +4,7 @@
 
 import numpy as np
 import pytest
+from pathlib import Path
 
 from utherm.core import (
     _expand_met_for_spinup,
@@ -19,6 +20,35 @@ from utherm.utci_process import (
     _daily_mean_air_temperature,
     _indices_for_current_day,
 )
+
+
+def test_home_paths_are_normalized_before_preprocessing(tmp_path, monkeypatch):
+    from utherm import preprocessor
+    names = _aligned_inputs(tmp_path)
+    _write_met(tmp_path / "met.txt", _valid_met())
+    original_expanduser = Path.expanduser
+
+    def expanduser(path):
+        if str(path) == "~":
+            return tmp_path
+        return tmp_path / str(path)[2:] if str(path).startswith("~/") else original_expanduser(path)
+
+    class StopAfterValidation(Exception):
+        pass
+
+    def record_preprocessor(base_path, building_dsm, dem, trees, *args, **kwargs):
+        assert base_path == str(tmp_path)
+        assert (building_dsm, dem, trees) == tuple(str(tmp_path / name) for name in names)
+        raise StopAfterValidation
+
+    monkeypatch.setattr(Path, "expanduser", expanduser)
+    monkeypatch.setattr(preprocessor, "ppr", record_preprocessor)
+    with pytest.raises(StopAfterValidation):
+        thermal_comfort(
+            "~/", "2023-07-15", building_dsm_filename=f"~/{names[0]}",
+            dem_filename=f"~/{names[1]}", trees_filename=f"~/{names[2]}",
+            own_met_file="~/met.txt",
+        )
 
 rasterio = pytest.importorskip("rasterio")
 from rasterio.transform import from_origin

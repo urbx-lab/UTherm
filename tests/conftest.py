@@ -27,6 +27,19 @@ def pytest_addoption(parser):
         help="Torch device to run tests on: cpu (default) or cuda",
     )
 
+    parser.addoption(
+        "--require-cuda", action="store_true", default=False,
+        help="Fail rather than skip if CUDA hardware is unavailable",
+    )
+
+
+def pytest_configure(config):
+    if config.getoption("--require-cuda"):
+        if config.getoption("--device") != "cuda":
+            raise pytest.UsageError("--require-cuda must be combined with --device=cuda")
+        if not torch.cuda.is_available():
+            raise pytest.UsageError("CUDA validation requested, but no CUDA device is available")
+
 
 # ── Device fixture ──────────────────────────────────────────────
 

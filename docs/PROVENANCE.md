@@ -24,3 +24,13 @@ reproduction of an unspecified archive.
 
 Preserve the exact release commit, dependency versions, hardware, raster and
 meteorological hashes, model options, and spin-up settings when reporting results.
+
+## Subsequent library improvements
+
+Validation and output exports now live in separate internal modules; the physical
+kernels retain their existing regression references. Lossless GeoTIFF compression
+changes file bytes but preserves cell values and georeferencing. The transport
+helper now preserves tensor wind speeds paired with scalar direction and assigns
+zero velocity when either wind observation is missing. These two behavioral fixes
+are covered by directional transport tests. Configuration defaults are instantiated
+per call and paired sequences use strict length checks.

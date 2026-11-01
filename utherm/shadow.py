@@ -347,7 +347,7 @@ def svf_calculator(patch_option,amaxvalue, a, vegdem, vegdem2, bush, scale):
 
     index = 0
     for i in range(skyvaultaltint.shape[0]):
-        for j in range(aziinterval[i].int()):
+        for _j in range(aziinterval[i].int()):
             altitude = skyvaultaltint[i]
             azimuth = iazimuth[0, index]
             sh, vegsh, vbshvegsh = shadow(amaxvalue, a, vegdem, vegdem2, bush, azimuth, altitude, scale)

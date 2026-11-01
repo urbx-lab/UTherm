@@ -20,7 +20,6 @@ from utherm.energy_balance.coupled import (
     N_FACETS,
     ROOF,
     WALL_NORTH,
-    WALL_SOUTH,
     CoupledUrbanEBConfig,
     CoupledUrbanEnergyBalance,
     UrbanFacetGeometry,
