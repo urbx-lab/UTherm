@@ -1,0 +1,33 @@
+{
+  "source_repository": "https://github.com/sashanksilwal/Tree-Placement.git",
+  "source_commit": "8e67215315ff399a7cdbe0148b9ad85dd1334f18",
+  "source_files_sha256": {
+    "utherm/Tgmaps_v1.py": "a1347c1010093fc80725adffcb79ed12b1c327907caff7a592f290acb249123f",
+    "utherm/__init__.py": "3c21bb4c288258056d80ca11603f39e33ca7417771efa18ae459e29b1f4dc1b7",
+    "utherm/calculate_utci.py": "f5c652be17c259412ba0fc43752e3bc0d3f698f70b32ea55add401c1bd088ef9",
+    "utherm/cli.py": "df063bc4a7e9d7b64dfb66a2e1327c3dd2f2e86bdf7ecce0eb6ae76d2207b3ab",
+    "utherm/core.py": "c7b722bdb4167df2dd92bd52e0e0c90eedbae20238857e5511981fee77a6c5c2",
+    "utherm/coupled_pipeline.py": "389daa23c42048ac6cc5404efe832e09c16e27acad2038bd7cad45426966157d",
+    "utherm/eb_bridge.py": "1c70c3575c8c02a275854a7deb2518e503838cb91eafe70bbb6d99c6d615c266",
+    "utherm/energy_balance/__init__.py": "bb3543d77fd9ee17310af24b01f2be24c64e3335641ceda6c4d83a39c79e5930",
+    "utherm/energy_balance/advection_diffusion.py": "e527a2d5b862b25837badede4f4042daacd227791d763c2e42174ec04a08eaf7",
+    "utherm/energy_balance/canopy.py": "6920438ad18b991e2632fd5ea40c0f9f4485fcfd6c6d600fc8f1b34c90f4ce47",
+    "utherm/energy_balance/canyon.py": "419bd47ca6ec042af8f839b79b34cfa01d5594caffd94497c2fac1f0eb9328b8",
+    "utherm/energy_balance/config.py": "d69dd6f4f8473abf0e484ece095e1c6efba16738c43ffc7a238e78e7c6487ff3",
+    "utherm/energy_balance/coupled.py": "c98469291b62bae7a33da32fd750514472e8c7233dcd802f990ccc5ceaca1cfa",
+    "utherm/energy_balance/materials.py": "49395ea03ba877606d32abcc695e4754e6d52823d212e9abfd152c228e63633b",
+    "utherm/energy_balance/net_radiation.py": "cd5a1aaeec221589ba76b741a5bf7dd26f14d7d755ef8bc091a696329377b538",
+    "utherm/energy_balance/physics.py": "8c6524081604b79b87ee02e7d40ec29b189050c79976775fd1063a014d5630db",
+    "utherm/energy_balance/solver.py": "d964c07a36e27a13d67465e8c190f2a99bec7bd810a9f6a0f7efd4ec46792abf",
+    "utherm/gui.py": "253eb15c8afe70e6cd4bbbac943151ce09b86753f3dadef442c6521bae856e7d",
+    "utherm/landcoverclasses_2016a.txt": "4f6f3c8acdb4719dba35a5401e3b89f19e569b0d4fef513dc87f43f9de4adaa7",
+    "utherm/preprocessor.py": "7eeaab127dfab1490a2f99cee000d84ce58e38e381f6bad4e32648cea15c51a7",
+    "utherm/radiation.py": "beee7b0915d8470cc93867979d27084843ea064de5f1b9956cb1ce45e401c3f6",
+    "utherm/shadow.py": "7dbda2a57a669c8fc279902a29db3fba719e0a5a20b44902869c35c9314a7e3d",
+    "utherm/sun_position.py": "ef9a5810db31434452632d1dc7f2bd9560dfbc6937b15f100f9051a307c174be",
+    "utherm/utci_process.py": "0720160b401b0c0d2cfd98b8a80173fa258f0d5d1abb49d84206a64da85b2942",
+    "utherm/view_factors.py": "5e20aa10fe7c3ed01d0cfb8d149db5dabb1f8bee1a810edbd38cf8e95763e44d",
+    "utherm/walls_aspect.py": "007e72cbb018f25d7ff16ba871273cfa0243d064a36e44272af924a2511bb2e6",
+    "utherm/wind_field.py": "407ab4d99c658f2b9d88d8d4c113d956f25634bc828e436541da90423e31248f"
+  }
+}

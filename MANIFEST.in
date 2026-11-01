@@ -1,0 +1,4 @@
+include LICENSE NOTICE CITATION.cff CHANGELOG.md CONTRIBUTING.md SECURITY.md environment.yml
+recursive-include docs *.md *.json
+recursive-include examples *.py
+recursive-include tests *.py

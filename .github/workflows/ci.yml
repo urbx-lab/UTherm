@@ -1,0 +1,51 @@
+name: CI
+on:
+  push:
+  pull_request:
+permissions:
+  contents: read
+concurrency:
+  group: ci-${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    timeout-minutes: 45
+    env:
+      OMP_NUM_THREADS: "4"
+    strategy:
+      fail-fast: false
+      matrix:
+        python: ['3.10', '3.11', '3.12']
+    steps:
+      - uses: actions/checkout@v4
+      - name: Select Python version
+        run: sed 's/python=3.11/python=${{ matrix.python }}/' environment.yml > /tmp/utherm-ci.yml
+      - uses: mamba-org/setup-micromamba@v3
+        with:
+          environment-file: /tmp/utherm-ci.yml
+          cache-environment: true
+      - name: Install and verify
+        shell: micromamba-shell {0}
+        run: |
+          python -m pip install -e '.[dev]'
+          ruff check utherm tests examples
+          pytest -q
+          utherm --version
+          utherm --help
+          utherm-geometry --help
+          python -m build
+          python -m twine check dist/*
+      - name: Test installed wheel outside the source tree
+        shell: micromamba-shell {0}
+        run: |
+          python -m pip uninstall -y urbx-utherm
+          python -m pip install --no-deps dist/*.whl
+          cp examples/synthetic_scene.py /tmp/utherm-example.py
+          cd /tmp
+          python -c "from importlib.resources import files; import utherm; assert files('utherm').joinpath('landcoverclasses_2016a.txt').is_file(); print(utherm.__version__)"
+          python /tmp/utherm-example.py --output /tmp/utherm-wheel-output
+      - uses: actions/upload-artifact@v4
+        with:
+          name: distributions-py${{ matrix.python }}
+          path: dist/
